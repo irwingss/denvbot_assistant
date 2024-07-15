@@ -1,0 +1,26 @@
+{
+  "name": "openai-assistants-api-streaming",
+  "version": "1.0.0",
+  "description": "A sample Next.js app created manually.",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "supershaneski",
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@fontsource/roboto": "^5.0.12",
+    "@mui/icons-material": "^5.15.14",
+    "@mui/material": "^5.15.14",
+    "next": "^14.1.4",
+    "openai": "^4.52.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "zustand": "^4.5.2"
+  }
+}

@@ -1,0 +1,44 @@
+.container {
+    position: relative;
+    height: 100vh;
+}
+.header {
+    background-color: #2d325a;
+    position: relative;
+    height: 50px;
+    z-index: 3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 1rem;
+}
+.messages {
+    background-color: #25294a;
+    height: calc(100% - 200px);
+    padding: 1rem 0;
+    overflow-y: auto;
+    z-index: 1;
+    scroll-behavior: smooth;
+    position: relative; /* Añadido para el posicionamiento relativo del contenido */
+  }
+.messages::before {
+    content: "";
+    background-image: url('/fondo_denvbot.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.5; /* Ajusta la opacidad según sea necesario */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Coloca la imagen detrás del contenido */
+  }
+.input {
+    background-color: #1f233e;
+    position: relative;
+    height: 150px;
+    padding: 1rem;
+    z-index: 3;
+}
