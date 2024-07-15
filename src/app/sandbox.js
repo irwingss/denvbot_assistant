@@ -200,10 +200,10 @@ export default function Sandbox() {
             <div className={classes.header}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <Image
-                        src="/logo_denvbot_largo3.png"
+                        src="/logo_denvbot_largo4.svg"
                         alt="DenvBot Logo"
-                        width={220}
-                        height={45}
+                        width={250}
+                        height={50}
                         style={{ marginRight: '8px' }}
                     />
                 </div>
