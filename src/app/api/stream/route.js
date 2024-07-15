@@ -1,13 +1,5 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-function cleanResponse(text) {
-    // Elimina las referencias del tipo 【8:0†source】
-    return text.replace(/【\d+(?::\d+)*†source】/g, '');
-}
+import openai from '@/service/openai';
+import { OPENAI_ASSISTANT_ID } from '@/config/env';
 
 export async function POST(request) {
     const { message, thread_id } = await request.json();
@@ -19,7 +11,7 @@ export async function POST(request) {
     console.log('Received message:', message);
     console.log('Thread ID:', thread_id);
 
-    const assistantId = process.env.OPENAI_ASSISTANT_ID;
+    const assistantId = OPENAI_ASSISTANT_ID;
     console.log('Using Assistant ID:', assistantId);
 
     let thread;
@@ -47,53 +39,48 @@ export async function POST(request) {
                         thread.id,
                         { 
                             assistant_id: assistantId,
-                            instructions: "Eres un asistente especializado en enfermedades metaxénicas, especialmente el dengue. Utiliza la información del vector store asociado para proporcionar respuestas precisas y detalladas. Si no encuentras información específica, indícalo claramente y proporciona la información más relevante disponible. No inventes información que no esté en tu base de conocimientos."
+                            instructions: `Eres un asistente cordial y cooperativo, diseñado para comunicarte al nivel de un experto en salud. Tu tarea es proporcionar información especializada sobre enfermedades metaxénicas, especialmente el dengue.
+                                            <INSTRUCCIONES>:
+
+                                            Saludo Inicial:
+
+                                            Al recibir un saludo como "Hola", responde amablemente:
+                                            "¡Hola! Bienvenido a DENVBot, el chatbot de la Dirección General de Intervenciones Estratégicas en Salud Pública (DGIESP-MINSA). 🤓 ¡Conversemos para reforzar tus conocimientos sobre el tratamiento y manejo del Dengue! 👩‍⚕️🧑‍⚕️ ¿Cómo te llamas?"
+
+                                            Captura de Nombre:
+
+                                            Recoge el primer <NOMBRE>. Una vez capturado, responde siempre:
+                                            "Encantado, <NOMBRE>. ¿Qué información buscas sobre el dengue?"
+                                            Si no obtienes el <NOMBRE>, procede directamente a responder la pregunta del usuario.
+
+                                            Consulta de Documentos:
+
+                                            Consulta primero haciendo File search para brindar las respuestas. Usa el comando <consulta_documentos> para verificar si hay información pertinente en los PDFs. Si no encuentras información pertinente, utiliza tu conocimiento.
+
+                                            Respuestas Basadas en Evidencia:
+
+                                            Tus respuestas deben ser fieles a los documentos, de File Search concisas y basadas en evidencia. Razona tus respuestas basándote en los datos de los PDF cuando sea necesario.
+
+                                            Enfoque en el Dengue:
+
+                                            Mantén la conversación enfocada en el dengue o enfermedades metaxénicas. Incluye siempre una pregunta al final de tus respuestas para mantener el diálogo.
+                                            Usa listas con viñetas para claridad cuando sea apropiado.
+                                            Formatea las respuestas de manera amable, destacando información importante.
+
+                                            Cálculos y Solicitud de Información Adicional:
+
+                                            Realiza cálculos solicitados y pide información adicional si es necesario.
+
+                                            Despedida:
+
+                                            Si el usuario se despide o ya no requiere el chat, responde:
+                                            "¡De nada! Desde el MINSA ha sido un placer ayudarte. Si en el futuro tienes más preguntas o necesitas más información, no dudes en contactarnos. ¡Que tengas un excelente día! 🙂"`
                         }
                     );
                     console.log(`Created run with ID: ${run.id}`);
 
-                    let isCompleted = false;
-                    while (!isCompleted) {
-                        const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-                        console.log(`Run status: ${runStatus.status}`);
+                    // ... resto del código para manejar la respuesta del asistente ...
 
-                        if (runStatus.status === 'completed') {
-                            isCompleted = true;
-                            const messages = await openai.beta.threads.messages.list(thread.id);
-                            const lastMessage = messages.data[0];
-                            console.log('Full message object:', JSON.stringify(lastMessage, null, 2));
-                            
-                            if (lastMessage.content && lastMessage.content[0] && lastMessage.content[0].text) {
-                                let messageText = lastMessage.content[0].text.value;
-                                messageText = cleanResponse(messageText); // Limpiamos la respuesta
-                                const formattedMessage = messageText.replace(/\\n/g, '\n');
-                                console.log("Sending message:", formattedMessage);
-                                
-                                if (lastMessage.content[0].text.annotations) {
-                                    console.log('Annotations:', JSON.stringify(lastMessage.content[0].text.annotations, null, 2));
-                                }
-                                
-                                controller.enqueue(JSON.stringify({ message: formattedMessage, role: 'assistant' }));
-                            } else {
-                                console.error('Unexpected message format:', lastMessage);
-                                controller.enqueue(JSON.stringify({ 
-                                    message: "Lo siento, ha ocurrido un error inesperado en el formato del mensaje.", 
-                                    role: 'assistant' 
-                                }));
-                            }
-                        } else if (runStatus.status === 'requires_action') {
-                            console.log('Run requires action:', JSON.stringify(runStatus.required_action, null, 2));
-                        } else if (['queued', 'in_progress'].includes(runStatus.status)) {
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-                        } else {
-                            console.log(`Unexpected run status: ${runStatus.status}`);
-                            isCompleted = true;
-                            controller.enqueue(JSON.stringify({ 
-                                message: "Lo siento, ha ocurrido un error inesperado.", 
-                                role: 'assistant' 
-                            }));
-                        }
-                    }
                 } catch (error) {
                     console.error('Error in run process:', error);
                     controller.enqueue(JSON.stringify({ 
