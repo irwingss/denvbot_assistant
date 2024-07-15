@@ -1,5 +1,13 @@
-import openai from '@/service/openai';
-import { OPENAI_ASSISTANT_ID } from '@/config/env';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+function cleanResponse(text) {
+    // Elimina las referencias del tipo 【8:0†source】
+    return text.replace(/【\d+(?::\d+)*†source】/g, '');
+}
 
 export async function POST(request) {
     const { message, thread_id } = await request.json();
@@ -11,7 +19,7 @@ export async function POST(request) {
     console.log('Received message:', message);
     console.log('Thread ID:', thread_id);
 
-    const assistantId = OPENAI_ASSISTANT_ID;
+    const assistantId = process.env.OPENAI_ASSISTANT_ID;
     console.log('Using Assistant ID:', assistantId);
 
     let thread;
@@ -39,7 +47,7 @@ export async function POST(request) {
                         thread.id,
                         { 
                             assistant_id: assistantId,
-                            instructions: `Eres un asistente cordial y cooperativo, diseñado para comunicarte al nivel de un experto en salud. Tu tarea es proporcionar información especializada sobre enfermedades metaxénicas, especialmente el dengue.
+                            instructions: `"Eres un asistente cordial y cooperativo, diseñado para comunicarte al nivel de un experto en salud. Tu tarea es proporcionar información especializada sobre enfermedades metaxénicas, especialmente el dengue.
                                             <INSTRUCCIONES>:
 
                                             Saludo Inicial:
@@ -75,12 +83,52 @@ export async function POST(request) {
 
                                             Si el usuario se despide o ya no requiere el chat, responde:
                                             "¡De nada! Desde el MINSA ha sido un placer ayudarte. Si en el futuro tienes más preguntas o necesitas más información, no dudes en contactarnos. ¡Que tengas un excelente día! 🙂"`
-                        }
+                            }
                     );
                     console.log(`Created run with ID: ${run.id}`);
 
-                    // ... resto del código para manejar la respuesta del asistente ...
+                    let isCompleted = false;
+                    while (!isCompleted) {
+                        const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+                        console.log(`Run status: ${runStatus.status}`);
 
+                        if (runStatus.status === 'completed') {
+                            isCompleted = true;
+                            const messages = await openai.beta.threads.messages.list(thread.id);
+                            const lastMessage = messages.data[0];
+                            console.log('Full message object:', JSON.stringify(lastMessage, null, 2));
+                            
+                            if (lastMessage.content && lastMessage.content[0] && lastMessage.content[0].text) {
+                                let messageText = lastMessage.content[0].text.value;
+                                messageText = cleanResponse(messageText); // Limpiamos la respuesta
+                                const formattedMessage = messageText.replace(/\\n/g, '\n');
+                                console.log("Sending message:", formattedMessage);
+                                
+                                if (lastMessage.content[0].text.annotations) {
+                                    console.log('Annotations:', JSON.stringify(lastMessage.content[0].text.annotations, null, 2));
+                                }
+                                
+                                controller.enqueue(JSON.stringify({ message: formattedMessage, role: 'assistant' }));
+                            } else {
+                                console.error('Unexpected message format:', lastMessage);
+                                controller.enqueue(JSON.stringify({ 
+                                    message: "Lo siento, ha ocurrido un error inesperado en el formato del mensaje.", 
+                                    role: 'assistant' 
+                                }));
+                            }
+                        } else if (runStatus.status === 'requires_action') {
+                            console.log('Run requires action:', JSON.stringify(runStatus.required_action, null, 2));
+                        } else if (['queued', 'in_progress'].includes(runStatus.status)) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } else {
+                            console.log(`Unexpected run status: ${runStatus.status}`);
+                            isCompleted = true;
+                            controller.enqueue(JSON.stringify({ 
+                                message: "Lo siento, ha ocurrido un error inesperado.", 
+                                role: 'assistant' 
+                            }));
+                        }
+                    }
                 } catch (error) {
                     console.error('Error in run process:', error);
                     controller.enqueue(JSON.stringify({ 
