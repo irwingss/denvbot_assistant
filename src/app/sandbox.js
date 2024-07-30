@@ -15,13 +15,11 @@ import { SimpleId } from '@/lib/utils'
 import Image from 'next/image'
 
 export default function Sandbox() {
-
     const threadId = useAppStore((state) => state.threadId)
     const setThreadId = useAppStore((state) => state.setThreadId)
 
     const timRef = React.useRef(null)
     const messageRef = React.useRef(null)
-    //const inputRef = React.useRef(null)
 
     const [messageItems, setMessageItems] = React.useState([])
     const [inputText, setInputText] = React.useState('')
@@ -94,6 +92,7 @@ export default function Sandbox() {
             })
 
             const reader = response.body.getReader()
+            const decoder = new TextDecoder()
 
             const assistantId = SimpleId()
 
@@ -118,40 +117,37 @@ export default function Sandbox() {
                     break
                 }
 
-                const raw_delta = new TextDecoder().decode(value)
+                const chunk = decoder.decode(value)
+                const lines = chunk.split('\n')
 
-                try {
-                    const delta = JSON.parse(raw_delta)
-                    if (delta.thread_id) {
-                        thread_id = delta.thread_id
-                    } else if (delta.wait) {
-                        setWaiting(true)
-                        resetScroll()
-                    } else if (delta.longwait) {
-                        setMessageItems((prev) => {
-                            return prev.map((a) => {
-                                return {
-                                    ...a,
-                                    content: a.id !== assistantId ? a.content : a.content + '\n\n'
-                                }
+                for (const line of lines) {
+                    if (line.trim() === '') continue
+
+                    try {
+                        const delta = JSON.parse(line)
+                        if (delta.thread_id) {
+                            thread_id = delta.thread_id
+                        } else if (delta.wait) {
+                            setWaiting(true)
+                            resetScroll()
+                        } else if (delta.message && delta.role === 'assistant') {
+                            setWaiting(false)
+                            setMessageItems((prev) => {
+                                return prev.map((a) => {
+                                    if (a.id === assistantId) {
+                                        return {
+                                            ...a,
+                                            content: a.content + delta.message
+                                        }
+                                    }
+                                    return a
+                                })
                             })
-                        })
-                        setWaiting(true)
-                        resetScroll()
-                    } else if (delta.message && delta.role === 'assistant') {
-                        setWaiting(false)
-                        setMessageItems((prev) => {
-                            return prev.map((a) => {
-                                return {
-                                    ...a,
-                                    content: a.id !== assistantId ? a.content : delta.message
-                                }
-                            })
-                        })
-                        resetScroll()
+                            resetScroll()
+                        }
+                    } catch (e) {
+                        console.log('Error parsing JSON:', e.message)
                     }
-                } catch (e) {
-                    console.log('Error parsing JSON:', e.message)
                 }
             }
 
@@ -167,7 +163,7 @@ export default function Sandbox() {
     }
 
     const resetScroll = () => {
-        clearTimeout(resetScroll)
+        clearTimeout(timRef.current)
         timRef.current = setTimeout(() => {
             messageRef.current.scrollTop = messageRef.current.scrollHeight
         }, 100)
@@ -228,14 +224,14 @@ export default function Sandbox() {
                     sx={{
                         '& .MuiOutlinedInput-root': {
                             '& fieldset': {
-                                borderColor: 'white', // Borde blanco
+                                borderColor: 'white',
                             },
                             '&:hover fieldset': {
-                                borderColor: '#5f43fa', // Borde blanco en hover
+                                borderColor: 'white',
                             },
                             '&.Mui-focused fieldset': {
-                                borderColor: '#5f43fa', // Borde neón amarillo cuando está enfocado
-                                boxShadow: '0 0 4px 2px #5f43fa', // Sombra neón amarilla
+                                borderColor: 'white',
+                                boxShadow: '0 0 5px 3px #79c0ea',
                             },
                         },
                     }}
@@ -256,7 +252,7 @@ export default function Sandbox() {
                         autoFocus
                         sx={{
                             '& .MuiInputBase-input': {
-                                color: '#fff', // Cambia este color al que desees
+                                color: '#fff',
                                 fontWeight: 300
                             },
                         }}

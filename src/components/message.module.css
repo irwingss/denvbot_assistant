@@ -2,52 +2,62 @@
     padding: .5rem 1rem;
     display: flex;
 }
-/*
-.message:last-child {
-    margin-bottom: 1rem;
-}
-*/
-/*
-.message + .message {
-    border-top: 1px dotted #fff;
-}
-*/
+
 .avatar {
     margin: 0 1rem;
     padding-top: .5rem;
 }
+
 .text {
     position: relative;
     min-width: 100px;
-    /*max-width: calc(100% - 140px);*/
     max-width: calc(100% - 80px);
-    background-color: #a7acdf;
+    background-color: #5ecfff;
     padding: 1rem;
     border-radius: .5rem;
     box-sizing: border-box;
-    white-space: pre-wrap;
-    color: #25294a;
+    color: #043661;
 }
+
 .assistant {
-    background-color: #2d335c;
+    background-color: #0c508c;
     color: #ffffff;
 }
-.order1 {
-    order: 1;
-}
-.order2 {
-    order: 2;
-}
-.right {
-    justify-content: flex-end;
-}
+
+.order1 { order: 1; }
+.order2 { order: 2; }
+.right { justify-content: flex-end; }
+
 .content {
     position: relative;
+    line-height: 1.4;
 }
+
 .progress {
     position: relative;
     height: 1rem;
 }
-.strong {
-    font-weight: bold;
+
+.orderedList, .unorderedList {
+    padding-left: 1.5em;
+    margin: 0.25em 0;
+}
+
+.unorderedList { list-style-type: disc; }
+
+.listItem {
+    margin-bottom: 0.25em;
+}
+
+.listItem > .orderedList,
+.listItem > .unorderedList {
+    margin-top: 0.25em;
+}
+
+.paragraph {
+    margin-bottom: 0.5em;
+}
+
+.content > .paragraph:last-child {
+    margin-bottom: 0;
 }

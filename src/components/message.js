@@ -2,7 +2,6 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import Avatar from '@mui/material/Avatar';
 import LinearProgress from '@mui/material/LinearProgress';
-import BotIcon from '@mui/icons-material/PsychologyAlt';
 import OpenAiIcon from './openaiicon';
 import classes from './message.module.css';
 
@@ -22,7 +21,16 @@ export default function Message({ message, isWaiting }) {
             )}
             <div className={classText}>
                 <div className={classes.content}>
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <ReactMarkdown
+                        components={{
+                            ol: ({node, ...props}) => <ol className={classes.orderedList} {...props} />,
+                            ul: ({node, ...props}) => <ul className={classes.unorderedList} {...props} />,
+                            li: ({node, ...props}) => <li className={classes.listItem} {...props} />,
+                            p: ({node, ...props}) => <p className={classes.paragraph} {...props} />
+                        }}
+                    >
+                        {message.content}
+                    </ReactMarkdown>
                 </div>
                 {isWaiting && (
                     <div className={classes.progress}>

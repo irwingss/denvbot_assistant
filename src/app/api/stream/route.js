@@ -1,11 +1,13 @@
 import OpenAI from 'openai';
 
+export const maxDuration = 60; 
+export const dynamic = 'force-dynamic';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
 function cleanResponse(text) {
-    // Elimina las referencias del tipo 【8:0†source】
     return text.replace(/【\d+(?::\d+)*†source】/g, '');
 }
 
@@ -36,10 +38,12 @@ export async function POST(request) {
         content: message
     });
 
+    const encoder = new TextEncoder();
+
     return new Response(
         new ReadableStream({
             async start(controller) {
-                controller.enqueue(JSON.stringify({ thread_id: thread.id, wait: true }));
+                controller.enqueue(encoder.encode(JSON.stringify({ thread_id: thread.id, wait: true }) + '\n'));
 
                 try {
                     console.log('Creating run...');
@@ -83,7 +87,7 @@ export async function POST(request) {
 
                                             Si el usuario se despide o ya no requiere el chat, responde:
                                             "¡De nada! Desde el MINSA ha sido un placer ayudarte. Si en el futuro tienes más preguntas o necesitas más información, no dudes en contactarnos. ¡Que tengas un excelente día! 🙂"`
-                            }
+                        }
                     );
                     console.log(`Created run with ID: ${run.id}`);
 
@@ -100,7 +104,7 @@ export async function POST(request) {
                             
                             if (lastMessage.content && lastMessage.content[0] && lastMessage.content[0].text) {
                                 let messageText = lastMessage.content[0].text.value;
-                                messageText = cleanResponse(messageText); // Limpiamos la respuesta
+                                messageText = cleanResponse(messageText);
                                 const formattedMessage = messageText.replace(/\\n/g, '\n');
                                 console.log("Sending message:", formattedMessage);
                                 
@@ -108,33 +112,41 @@ export async function POST(request) {
                                     console.log('Annotations:', JSON.stringify(lastMessage.content[0].text.annotations, null, 2));
                                 }
                                 
-                                controller.enqueue(JSON.stringify({ message: formattedMessage, role: 'assistant' }));
+                                // Dividimos el mensaje en chunks más pequeños para streaming
+                                const chunkSize = 100; // Ajusta este valor según sea necesario
+                                for (let i = 0; i < formattedMessage.length; i += chunkSize) {
+                                    const chunk = formattedMessage.slice(i, i + chunkSize);
+                                    controller.enqueue(encoder.encode(JSON.stringify({ message: chunk, role: 'assistant' }) + '\n'));
+                                    // Pequeña pausa para simular typing
+                                    await new Promise(resolve => setTimeout(resolve, 50));
+                                }
                             } else {
                                 console.error('Unexpected message format:', lastMessage);
-                                controller.enqueue(JSON.stringify({ 
+                                controller.enqueue(encoder.encode(JSON.stringify({ 
                                     message: "Lo siento, ha ocurrido un error inesperado en el formato del mensaje.", 
                                     role: 'assistant' 
-                                }));
+                                }) + '\n'));
                             }
                         } else if (runStatus.status === 'requires_action') {
                             console.log('Run requires action:', JSON.stringify(runStatus.required_action, null, 2));
                         } else if (['queued', 'in_progress'].includes(runStatus.status)) {
+                            controller.enqueue(encoder.encode(JSON.stringify({ wait: true }) + '\n'));
                             await new Promise(resolve => setTimeout(resolve, 1000));
                         } else {
                             console.log(`Unexpected run status: ${runStatus.status}`);
                             isCompleted = true;
-                            controller.enqueue(JSON.stringify({ 
+                            controller.enqueue(encoder.encode(JSON.stringify({ 
                                 message: "Lo siento, ha ocurrido un error inesperado.", 
                                 role: 'assistant' 
-                            }));
+                            }) + '\n'));
                         }
                     }
                 } catch (error) {
                     console.error('Error in run process:', error);
-                    controller.enqueue(JSON.stringify({ 
+                    controller.enqueue(encoder.encode(JSON.stringify({ 
                         message: "Lo siento, ha ocurrido un error en el proceso.", 
                         role: 'assistant' 
-                    }));
+                    }) + '\n'));
                 } finally {
                     controller.close();
                 }

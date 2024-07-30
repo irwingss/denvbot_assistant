@@ -1,9 +1,10 @@
 .container {
     position: relative;
     height: 100vh;
+    overflow: hidden;
 }
 .header {
-    background-color: #2d325a;
+    background-color: #0c508c;
     position: relative;
     height: 50px;
     z-index: 3;
@@ -14,7 +15,7 @@
     padding: 0 1rem;
 }
 .messages {
-    background-color: #25294a;
+    background-color: #084177;
     height: calc(100% - 200px);
     padding: 1rem 0;
     overflow-y: auto;
@@ -36,7 +37,7 @@
     z-index: -1; /* Coloca la imagen detrás del contenido */
   }
 .input {
-    background-color: #1f233e;
+    background-color: #04325e;
     position: relative;
     height: 150px;
     padding: 1rem;

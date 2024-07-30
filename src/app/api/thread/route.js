@@ -1,4 +1,17 @@
-import openai from '@/service/openai'
+import OpenAI from 'openai';
+
+export const maxDuration = 60; // Esto permite que la función se ejecute por un máximo de 60 segundos
+export const dynamic = 'force-dynamic';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+function cleanResponse(text) {
+    // Elimina las referencias del tipo 【8:0†source】
+    return text.replace(/【\d+(?::\d+)*†source】/g, '');
+}
+
 
 export async function POST(request) {
 
