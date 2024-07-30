@@ -9,9 +9,13 @@ const openai = new OpenAI({
 
 function cleanResponse(text) {
     // Elimina las referencias del tipo 【8:0†source】
-    return text.replace(/【\d+(?::\d+)*†source】/g, '');
+    text = text.replace(/【\d+(?::\d+)*†source】/g, '');
+    
+    // Convierte las expresiones LaTeX entre corchetes a formato LaTeX con $
+    text = text.replace(/\[(.*?)\]/g, '$ $1 $');
+    
+    return text;
 }
-
 
 export async function POST(request) {
 
